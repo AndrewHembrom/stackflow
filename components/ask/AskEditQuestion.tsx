@@ -128,7 +128,7 @@ const AskEditQuestion = ({
               render={({ field }) => (
                 <FormItem className="flex w-full flex-col">
                   <FormLabel className="paragraph-semibold text-dark400_light800">
-                    Question Title *
+                    QGive Explanation
                   </FormLabel>
                   <FormControl className="mt-3.5">
                     <Editor
@@ -165,7 +165,7 @@ const AskEditQuestion = ({
               render={({ field }) => (
                 <FormItem className="flex w-full flex-col">
                   <FormLabel className="paragraph-semibold text-dark400_light800">
-                    Question Title *
+                    Add Tags
                   </FormLabel>
                   <FormControl className="mt-3.5">
                     <TagInput
