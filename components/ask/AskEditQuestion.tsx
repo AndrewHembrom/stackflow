@@ -134,7 +134,7 @@ const AskEditQuestion = ({
                     <Editor
                       apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
                       onBlur={field.onBlur}
-                      value={field.value || "Welcome to StackOverflow!"}
+                      initialValue="Type Here..."
                       onEditorChange={(content) => field.onChange(content)}
                       init={{
                         plugins:
