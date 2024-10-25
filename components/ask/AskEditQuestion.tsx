@@ -1,13 +1,14 @@
 "use client";
 
 import { Editor } from "@tinymce/tinymce-react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useTransition } from "react";
 import { question, tag } from "@prisma/client";
+import { toast } from "sonner";
 
 import {
   Form,
@@ -22,39 +23,86 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { QuestionsSchema } from "@/lib/validation";
 import TagInput from "@/components/ask/TagInput";
+import { AskQuestion, EditQuestion } from "@/actions/Question";
+import { Tag } from "react-tag-input";
 
-const AskEditQuestion = () => {
+const AskEditQuestion = ({
+  question,
+}: {
+  question?:
+    | (question & {
+        tags: Tag[];
+      })
+    | null;
+}) => {
   const [isPending, startTransition] = useTransition();
   const { resolvedTheme } = useTheme();
   const router = useRouter();
 
+  const tags: Tag[] =
+    question?.tags.map((tag: Tag) => ({
+      id: tag.id,
+      text: tag.tag,
+    })) || [];
+
   const form = useForm<z.infer<typeof QuestionsSchema>>({
     resolver: zodResolver(QuestionsSchema),
-    defaultValues: {
-      title: "",
-      explanation: "",
-      tags: [],
-    },
+    defaultValues: question
+      ? {
+          title: question.title,
+          explanation: question.explanation,
+          tags,
+        }
+      : {
+          title: "",
+          explanation: "",
+          tags: [],
+        },
   });
 
   const onSubmit = (values: z.infer<typeof QuestionsSchema>) => {
+    // console.log(values);
     startTransition(async () => {
-      // TODO: Implement submit logic
+      if (question) {
+        // edit
+        await EditQuestion(question.id, values, question.userId)
+          .then(() => {
+            form.reset();
+            router.push("/");
+            toast.success("Question edited successfully");
+          })
+          .catch((err) => {
+            console.log(err);
+            toast.error("Something went wrong");
+          });
+      } else {
+        // create
+        await AskQuestion(values)
+          .then(() => {
+            form.reset();
+            router.push("/");
+            toast.success("Question created successfully");
+          })
+          .catch((err) => {
+            console.log(err);
+            toast.error("Something went wrong");
+          });
+      }
     });
   };
 
   return (
     <div>
-      <h1 className="h1-bold text-dark100_light900">Ask a Question</h1>
+      <h1 className="h1-bold text-dark100_light900">Ask Question</h1>
       <div className="mt-9">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Title*/}
+            {/* title */}
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem className="flex w-full flex-col gap-1.5">
+                <FormItem className="flex w-full flex-col">
                   <FormLabel className="paragraph-semibold text-dark400_light800">
                     Question Title *
                   </FormLabel>
@@ -73,13 +121,12 @@ const AskEditQuestion = () => {
                 </FormItem>
               )}
             />
-
-            {/* Explanation */}
+            {/* explanation */}
             <FormField
               control={form.control}
               name="explanation"
               render={({ field }) => (
-                <FormItem className="flex w-full flex-col gap-1.5">
+                <FormItem className="flex w-full flex-col">
                   <FormLabel className="paragraph-semibold text-dark400_light800">
                     Question Title *
                   </FormLabel>
@@ -87,7 +134,7 @@ const AskEditQuestion = () => {
                     <Editor
                       apiKey={process.env.NEXT_PUBLIC_TINY_EDITOR_API_KEY}
                       onBlur={field.onBlur}
-                      initialValue={field.value || "Welcome to StackFlow!"}
+                      initialValue={field.value || "Welcome to StackOverflow!"}
                       onEditorChange={(content) => field.onChange(content)}
                       init={{
                         plugins:
@@ -111,23 +158,20 @@ const AskEditQuestion = () => {
                 </FormItem>
               )}
             />
-
-            {/* Tags */}
+            {/* tags */}
             <FormField
               control={form.control}
               name="tags"
               render={({ field }) => (
-                <FormItem className="flex w-full flex-col gap-1.5">
+                <FormItem className="flex w-full flex-col">
                   <FormLabel className="paragraph-semibold text-dark400_light800">
                     Question Title *
                   </FormLabel>
                   <FormControl className="mt-3.5">
                     <TagInput
-                      disabled={isPending}
-                      onChange={(tags) => {
-                        field.onChange(tags);
-                      }}
                       questionTags={field.value}
+                      onChange={(tags) => field.onChange(tags)}
+                      disabled={isPending}
                     />
                   </FormControl>
                   <FormDescription className="body-regular mt-2.5 text-light-500">
@@ -138,13 +182,12 @@ const AskEditQuestion = () => {
                 </FormItem>
               )}
             />
-
             <Button
               type="submit"
-              className="primary-gradient w-full !text-lime-900"
+              className="primary-gradient w-full !text-light-900"
               disabled={isPending}
             >
-              Ask Question
+              {question ? "Edit Question" : "Ask a Question"}
             </Button>
           </form>
         </Form>

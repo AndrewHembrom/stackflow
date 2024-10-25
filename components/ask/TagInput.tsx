@@ -7,7 +7,7 @@ import Tags from "@/constants/tags";
 
 interface TagProps {
   id: string;
-  className: string;
+  text: string;
   [key: string]: string;
 }
 const KeyCodes = {
@@ -15,10 +15,10 @@ const KeyCodes = {
   enter: 13,
 };
 
-const suggestions = Tags.map((tag) => {
+const suggestions: TagProps[] = Tags.map((tag) => {
   return {
     id: tag,
-    className: tag,
+    text: tag,
   };
 });
 
