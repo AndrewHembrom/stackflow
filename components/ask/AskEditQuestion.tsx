@@ -31,7 +31,7 @@ const AskEditQuestion = ({
 }: {
   question?:
     | (question & {
-        tags: tag[];
+        tags: Tag[];
       })
     | null;
 }) => {
@@ -51,7 +51,7 @@ const AskEditQuestion = ({
       ? {
           title: question.title,
           explanation: question.explanation,
-          tags: tags,
+          tags,
         }
       : {
           title: "",
