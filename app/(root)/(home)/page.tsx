@@ -1,23 +1,31 @@
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 
-import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { Button } from "@/components/ui/button";
 import QuestionCard from "@/components/global/QuestionCard";
 import NoResult from "@/components/global/NoResult";
+import Searchbar from "@/components/Searchbar";
+import Filters from "@/components/global/Filters";
+import { HomePageFilters } from "@/constants/filters";
+import MobileFilters from "@/components/global/MobileFilters";
+import CustomPagination from "@/components/global/CustomPagination";
+import { FetchQuestion } from "@/actions/FetchQuestion";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: {
-    page: number;
-    filter: string;
-    q: string;
-  };
-}) {
+export default async function Home({ params }: { params: any }) {
+  const CurrentUser = await currentUser();
+
+  // Get `searchParams` from URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const page = searchParams.get("page") ? Number(searchParams.get("page")) : 0;
+  const filter = searchParams.get("filter") || "";
+  const q = searchParams.get("q") || "";
+
+  const question = await db.question.findMany();
+
   const Questions = await db.question.findMany({
-    // skip: 10 * Number(10),
-    // take: 10,
+    skip: 10 * page,
+    take: 10,
     include: {
       tags: true,
       answer: true,
@@ -28,16 +36,25 @@ export default async function Home({
     },
     where: {
       title: {
-        contains: searchParams.q,
+        contains: q,
       },
     },
     orderBy: {
-      createdAt: searchParams.filter === "newest" ? "desc" : "asc",
+      createdAt: filter === "newest" ? "desc" : "asc",
     },
   });
 
+  const UserTags = await db.tag.findMany({
+    where: {
+      userId: CurrentUser?.id,
+      questionId: null,
+    },
+  });
+
+  const result = await FetchQuestion(filter, UserTags, Questions);
+
   return (
-    <div>
+    <>
       {Questions?.length > 0 && (
         <>
           <div className="flex w-full flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
@@ -52,15 +69,27 @@ export default async function Home({
             </Link>
           </div>
           <div className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
-            SearchBar MobileFilters
+            <Searchbar
+              route="/"
+              iconPosition="left"
+              imgSrc="/assets/icons/search.svg"
+              placeholder="Search for questions"
+              otherClasses="flex-1"
+            />
+            {/* MobileFilters */}
+            <MobileFilters
+              filters={HomePageFilters}
+              otherClasses="min-h-[56px] sm:min-w-[170px]"
+              containerClasses="hidden max-md:flex"
+            />
           </div>
-          Filters
+          <Filters filters={HomePageFilters} />
         </>
       )}
       <div className="mt-10 flex w-full flex-col gap-6">
-        {Questions.length > 0 ? (
+        {result && result.length > 0 ? (
           <>
-            {Questions.map((question) => {
+            {result?.map((question) => (
               <QuestionCard
                 key={question.id}
                 question={question}
@@ -68,18 +97,23 @@ export default async function Home({
                 user={question.user}
                 Upvotes={question.upvotes}
                 answers={question.answer}
-              />;
-            })}
+              />
+            ))}
+            {question?.length > 10 && (
+              <div className="mt-10">
+                <CustomPagination page={page} length={question.length} />
+              </div>
+            )}
           </>
         ) : (
           <NoResult
             title="There’s no question to show"
-            description="Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved! 💡"
+            description="Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. Your query could be the next big thing others learn from. Get involved! 💡"
             link="/askQuestion"
             linkTitle="Ask a Question"
           />
         )}
       </div>
-    </div>
+    </>
   );
 }
