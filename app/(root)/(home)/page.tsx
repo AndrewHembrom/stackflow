@@ -12,16 +12,14 @@ import MobileFilters from "@/components/global/MobileFilters";
 import CustomPagination from "@/components/global/CustomPagination";
 import { FetchQuestion } from "@/actions/FetchQuestion";
 
-export default async function Home({ params }: { params: any }) {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; filter?: string; q?: string }>;
+}) {
+  const resolvedParams = await searchParams; // Await the Promise to resolve searchParams
   const CurrentUser = await currentUser();
-
-  // Get `searchParams` from URL
-  const searchParams = new URLSearchParams(window.location.search);
-  const page = searchParams.get("page") ? Number(searchParams.get("page")) : 0;
-  const filter = searchParams.get("filter") || "";
-  const q = searchParams.get("q") || "";
-
-  const question = await db.question.findMany();
+  const page = Number(resolvedParams.page) || 0; // Convert to number, default to 0
 
   const Questions = await db.question.findMany({
     skip: 10 * page,
@@ -36,11 +34,11 @@ export default async function Home({ params }: { params: any }) {
     },
     where: {
       title: {
-        contains: q,
+        contains: resolvedParams.q || "", // Default to empty string if not provided
       },
     },
     orderBy: {
-      createdAt: filter === "newest" ? "desc" : "asc",
+      createdAt: resolvedParams.filter === "newest" ? "desc" : "asc",
     },
   });
 
@@ -51,7 +49,11 @@ export default async function Home({ params }: { params: any }) {
     },
   });
 
-  const result = await FetchQuestion(filter, UserTags, Questions);
+  const result = await FetchQuestion(
+    resolvedParams.filter || "",
+    UserTags,
+    Questions
+  );
 
   return (
     <>
@@ -76,7 +78,6 @@ export default async function Home({ params }: { params: any }) {
               placeholder="Search for questions"
               otherClasses="flex-1"
             />
-            {/* MobileFilters */}
             <MobileFilters
               filters={HomePageFilters}
               otherClasses="min-h-[56px] sm:min-w-[170px]"
@@ -89,7 +90,7 @@ export default async function Home({ params }: { params: any }) {
       <div className="mt-10 flex w-full flex-col gap-6">
         {result && result.length > 0 ? (
           <>
-            {result?.map((question) => (
+            {result.map((question) => (
               <QuestionCard
                 key={question.id}
                 question={question}
@@ -99,9 +100,9 @@ export default async function Home({ params }: { params: any }) {
                 answers={question.answer}
               />
             ))}
-            {question?.length > 10 && (
+            {Questions.length > 10 && (
               <div className="mt-10">
-                <CustomPagination page={page} length={question.length} />
+                <CustomPagination page={page} length={Questions.length} />
               </div>
             )}
           </>
