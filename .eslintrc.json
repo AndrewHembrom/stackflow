@@ -6,6 +6,7 @@
     "@typescript-eslint/no-explicit-any": "off",
     "no-var": "off",
     "@typescript-eslint/ban-ts-comment": "off",
-    "react-hooks/exhaustive-deps": "off" 
+    "react-hooks/exhaustive-deps": "off",
+    "@typescript-eslint/no-non-null-asserted-optional-chain": "off" 
   }
 }
